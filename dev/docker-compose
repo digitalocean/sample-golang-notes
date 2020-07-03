@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+. dev/env
+
+docker-compose -f dev/docker-compose.yml -p ${APP_NAME} $@

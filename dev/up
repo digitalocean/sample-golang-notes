@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+. dev/env
+
+dev/docker-compose up -d
+
+go run main.go
