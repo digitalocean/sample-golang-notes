@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	log.Println("=> Running database auto-migration...")
 	db, err := notes.GetDatabaseConnection()
 	if err != nil {
 		log.Fatalf("getting database connection: %s", err)
@@ -16,4 +17,5 @@ func main() {
 	defer db.Close()
 
 	db.AutoMigrate(&notes.Note{})
+	log.Println("-> Finished")
 }
