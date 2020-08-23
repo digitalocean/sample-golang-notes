@@ -1,4 +1,4 @@
-module github.com/digitalocean-apps/sample-with-database
+module github.com/digitalocean/sample-golang-notes
 
 go 1.14
 
