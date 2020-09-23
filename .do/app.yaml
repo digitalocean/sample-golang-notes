@@ -1,0 +1,13 @@
+name: sample-golang-notes
+services:
+- name: web
+  github:
+    repo: digitalocean/sample-golang-notes
+    branch: master
+  envs:
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+databases:
+- name: db
+  engine: PG
+  version: "12"
