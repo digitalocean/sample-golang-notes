@@ -3,7 +3,7 @@ services:
 - name: web
   github:
     repo: digitalocean/sample-golang-notes
-    branch: master
+    branch: main
   envs:
   - key: DATABASE_URL
     value: ${db.DATABASE_URL}
