@@ -1,0 +1,26 @@
+name: sample-golang-notes
+services:
+- name: web
+  github:
+    repo: digitalocean/sample-golang-notes
+    branch: migrate-job
+  envs:
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+
+jobs:
+- name: migrate
+  kind: PRE_DEPLOY
+  github:
+    repo: digitalocean/sample-golang-notes
+    branch: migrate-job
+  build_command: mkdir -p bin && cd cmd/migrate && go build -o ../../bin/migrate
+  run_command: bin/migrate
+  envs:
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+
+databases:
+- name: db
+  engine: PG
+  version: "12"
