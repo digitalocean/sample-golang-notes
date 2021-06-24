@@ -8,17 +8,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/digitalocean-apps/sample-with-database/pkg/model"
+	"github.com/digitalocean-apps/sample-with-database/pkg/storer"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"github.com/xo/dburl"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const (
-	defaultPort        = "80"
+	defaultPort        = "8080"
 	defaultDatabaseURL = "postgresql://postgres:postgres@127.0.0.1:5432/notes/?sslmode=disable"
 
 	startupMessage = `[38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;54;48;5;39m [38;5;54;48;5;39m [38;5;54;48;5;39m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [38;5;1;48;5;16m [0m
@@ -39,34 +39,17 @@ const (
 [0m`
 )
 
-// Note represents a single note.
-type Note struct {
-	gorm.Model
-	Uuid string
-	Body string
-}
-
-func initialMigration(db *gorm.DB) {
-	db.AutoMigrate(&Note{})
-}
-
 func main() {
 	// Parse connection config.
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		databaseURL = defaultDatabaseURL
 	}
-	dbURL, err := dburl.Parse(databaseURL)
-	requireNoError(err, "parsing DATABASE_URL")
+	caCert := os.Getenv("CA_CERT")
 
-	// Open a DB connection.
-	dbPassword, _ := dbURL.User.Password()
-	dbName := strings.Trim(dbURL.Path, "/")
-	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", dbURL.Hostname(), dbURL.Port(), dbURL.User.Username(), dbName, dbPassword, dbURL.Query().Get("sslmode"))
-	db, err := gorm.Open("postgres", connectionString)
+	db, err := storer.NewStorer(databaseURL, caCert)
 	requireNoError(err, "connecting to database")
 	defer db.Close()
-	initialMigration(db)
 
 	// Initialize the listening port.
 	port := os.Getenv("PORT")
@@ -89,10 +72,10 @@ func main() {
 	fmt.Printf("==> Server listening at %s 🚀\n", bindAddr)
 
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), r)
-	requireNoError(err, "connecting to database")
+	requireNoError(err, "starting server")
 }
 
-func notesHandler(db *gorm.DB) func(w http.ResponseWriter, r *http.Request) {
+func notesHandler(db storer.Storer) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			var body string
@@ -117,13 +100,14 @@ func notesHandler(db *gorm.DB) func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			err = db.Create(&Note{
-				Uuid: noteUUID.String(),
+			err = db.Create(&model.Note{
+				UUID: noteUUID.String(),
 				Body: body,
-			}).Error
+			})
 			if !requireNoErrorInHandler(w, err, "creating note in db") {
 				return
 			}
+
 			log.Printf("POST %s %s\n", noteUUID.String(), body)
 
 			w.WriteHeader(http.StatusOK)
@@ -136,7 +120,7 @@ func notesHandler(db *gorm.DB) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func noteHandler(db *gorm.DB) func(w http.ResponseWriter, r *http.Request) {
+func noteHandler(db storer.Storer) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		noteID := vars["note_id"]
@@ -147,9 +131,8 @@ func noteHandler(db *gorm.DB) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var note Note
-		err := db.Where("uuid = ?", noteID).Take(&note).Error
-		if gorm.IsRecordNotFoundError(err) {
+		note, err := db.Get(noteID)
+		if errors.Is(err, storer.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/digitalocean-apps/sample-with-database/pkg/storer"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -71,8 +72,12 @@ func TestNotesHandler(t *testing.T) {
 				tc.mock(mock)
 			}
 
+			storerClient := &storer.PG{
+				DB: gdb,
+			}
+
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(notesHandler(gdb))
+			handler := http.HandlerFunc(notesHandler(storerClient))
 			handler.ServeHTTP(rr, req)
 
 			assert.Equal(t, tc.expectedStatus, rr.Code)
@@ -141,8 +146,12 @@ func TestNoteHandler(t *testing.T) {
 				tc.mock(mock)
 			}
 
+			storerClient := &storer.PG{
+				DB: gdb,
+			}
+
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(noteHandler(gdb))
+			handler := http.HandlerFunc(noteHandler(storerClient))
 			handler.ServeHTTP(rr, req)
 
 			assert.Equal(t, tc.expectedStatus, rr.Code)
