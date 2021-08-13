@@ -33,5 +33,9 @@ func NewStorer(connection string, ca string) (Storer, error) {
 		return NewMongoClient(connection, ca)
 	}
 
+	if strings.HasPrefix(connection, "mysql") {
+		return NewMySQLClient(connection)
+	}
+
 	return nil, (fmt.Errorf("Improper connection string format: %v", connection))
 }
