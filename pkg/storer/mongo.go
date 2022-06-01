@@ -30,14 +30,16 @@ func NewMongoClient(connection string, ca string) (*Mongo, error) {
 	opts := options.Client()
 	opts.ApplyURI(connection)
 
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(ca))
-	if !ok {
-		return nil, fmt.Errorf("appending certs from pem")
+	if ca != "" {
+		roots := x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM([]byte(ca))
+		if !ok {
+			return nil, fmt.Errorf("appending certs from pem")
+		}
+		opts.SetTLSConfig(&tls.Config{
+			RootCAs: roots,
+		})
 	}
-	opts.SetTLSConfig(&tls.Config{
-		RootCAs: roots,
-	})
 
 	client, err := mongo.NewClient(opts)
 	if err != nil {
