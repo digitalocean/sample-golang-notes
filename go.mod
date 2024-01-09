@@ -7,8 +7,10 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/gorilla/mux v1.7.4
 	github.com/jinzhu/gorm v1.9.14
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	github.com/xo/dburl v0.0.0-20200124232849-e9ec94f52bc3
-	go.mongodb.org/mongo-driver v1.5.3
+	go.mongodb.org/mongo-driver v1.13.1
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
